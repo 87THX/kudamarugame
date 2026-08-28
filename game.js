@@ -10,7 +10,7 @@ const soundButton = document.querySelector('#soundButton');
 const leftButton = document.querySelector('#leftButton');
 const rightButton = document.querySelector('#rightButton');
 
-let playing = false, score = 0, seconds = 30, playerX = 0.5, keys = {}, stars = [], spawnTimer, ticker, animation, muted = false, audioCtx, frozenUntil = 0, freezeTimer, damageTimer, surpriseTimer, bashfulTimer, singingTimer, fireworksShown = false;
+let playing = false, score = 0, seconds = 30, playerX = 0.5, keys = {}, stars = [], spawnTimer, ticker, animation, muted = false, audioCtx, frozenUntil = 0, freezeTimer, damageTimer, surpriseTimer, bashfulTimer, singingTimer, stoneAnimation, fireworksShown = false;
 const collectibleSprites = {};
 
 // 外側につながる白だけを透明にするので、キャラクター内部の白は残る。
@@ -59,8 +59,8 @@ function cropAccessory(source, x, y, width, height, outline, target) {
   const isTargetColor = (red, green, blue) => {
     if (target === 'fox') return Math.min(red, green, blue) > 155 || (red > green * 1.18 && red > blue * 1.12);
     if (target === 'tree') return green > 75 && green > red * 1.03 && green > blue * 1.15;
-    if (target === 'note') return blue > red * 1.05 && green > red * 1.05 && blue > green * .9;
-    return red > 135 && red > green * 1.06 && red > blue * 1.02;
+    if (target === 'note') return red < 225 && green > 80 && blue > 80;
+    return red > 105 && red > green * 1.015 && red > blue * 1.005;
   };
   for (let index = 0; index < data.length; index += 4) {
     const red = data[index], green = data[index + 1], blue = data[index + 2];
@@ -104,7 +104,7 @@ const makeCharacterCutout = () => {
     collectibleSprites.fox = cropAccessory(cutout, 110, 35, 140, 125, [[0,0],[140,0],[140,125],[0,125]], 'fox');
     collectibleSprites.tree = cropAccessory(cutout, 263, 125, 155, 150, [[0,0],[155,0],[155,150],[0,150]], 'tree');
     collectibleSprites.petal = cropAccessory(cutout, 78, 148, 112, 75, [[3,5],[32,0],[49,16],[70,6],[94,18],[110,42],[99,67],[71,75],[49,62],[25,70],[4,53]], 'petal');
-    collectibleSprites.note = cropAccessory(cutout, 155, 65, 140, 125, [[0,0],[140,0],[140,125],[0,125]], 'note');
+    collectibleSprites.note = cropAccessory(cutout, 180, 100, 95, 85, [[0,0],[95,0],[95,85],[0,85]], 'note');
     titleFace.src = cropTitleFace(cutout);
     characterImage.dataset.cutout = 'true';
     characterImage.src = cutout.toDataURL('image/png');
@@ -144,8 +144,8 @@ function spawn() {
   star.style.left = `calc(${item.x * 100}% - 25px)`; game.append(star); stars.push(item);
 }
 function isFrozen() { const active = Date.now() < frozenUntil; if (!active && frozenUntil) unfreeze(); return active; }
-function unfreeze() { frozenUntil = 0; character.classList.remove('frozen'); damageEl.classList.remove('show'); }
-function takeDamage() { frozenUntil = Date.now() + 2000; score = Math.max(0, score - 3); scoreEl.textContent = score; character.classList.remove('frozen'); character.animate([{ filter: 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)' }, { filter: 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)', offset: .88 }, { filter: 'drop-shadow(0 8px 3px rgba(45,94,81,.23))' }], { duration: 2000, easing: 'linear' }); damageEl.classList.add('show'); clearTimeout(freezeTimer); clearTimeout(damageTimer); freezeTimer = setTimeout(unfreeze, 2000); damageTimer = setTimeout(() => damageEl.classList.remove('show'), 2000); foxSound(); }
+function unfreeze() { frozenUntil = 0; stoneAnimation?.cancel(); stoneAnimation = null; character.classList.remove('frozen'); character.style.removeProperty('filter'); damageEl.classList.remove('show'); }
+function takeDamage() { frozenUntil = Date.now() + 2000; score = Math.max(0, score - 3); scoreEl.textContent = score; character.classList.remove('frozen'); stoneAnimation?.cancel(); stoneAnimation = character.animate([{ filter: 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)' }, { filter: 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)', offset: .88 }, { filter: 'drop-shadow(0 8px 3px rgba(45,94,81,.23))' }], { duration: 2000, easing: 'linear' }); damageEl.classList.add('show'); clearTimeout(freezeTimer); clearTimeout(damageTimer); freezeTimer = setTimeout(unfreeze, 2000); damageTimer = setTimeout(() => damageEl.classList.remove('show'), 2000); foxSound(); }
 function surprise() { character.classList.add('surprised'); clearTimeout(surpriseTimer); surpriseTimer = setTimeout(() => character.classList.remove('surprised'), 450); }
 function bashful() { character.classList.add('bashful'); clearTimeout(bashfulTimer); bashfulTimer = setTimeout(() => character.classList.remove('bashful'), 750); }
 function sing() { character.classList.add('singing'); clearTimeout(singingTimer); singingTimer = setTimeout(() => character.classList.remove('singing'), 800); }
