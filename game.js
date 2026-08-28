@@ -10,7 +10,7 @@ const soundButton = document.querySelector('#soundButton');
 const leftButton = document.querySelector('#leftButton');
 const rightButton = document.querySelector('#rightButton');
 
-let playing = false, score = 0, seconds = 30, playerX = 0.5, keys = {}, stars = [], spawnTimer, ticker, animation, muted = false, audioCtx, frozenUntil = 0, freezeTimer, damageTimer, surpriseTimer, bashfulTimer, singingTimer, stoneAnimation, fireworksShown = false;
+let playing = false, score = 0, seconds = 30, playerX = 0.5, keys = {}, stars = [], spawnTimer, ticker, animation, muted = false, audioCtx, frozenUntil = 0, freezeTimer, damageTimer, surpriseTimer, bashfulTimer, singingTimer, glowTimer, stoneAnimation, fireworksShown = false;
 const collectibleSprites = {};
 
 // 外側につながる白だけを透明にするので、キャラクター内部の白は残る。
@@ -59,7 +59,7 @@ function cropAccessory(source, x, y, width, height, outline, target) {
   const isTargetColor = (red, green, blue) => {
     if (target === 'fox') return Math.min(red, green, blue) > 155 || (red > green * 1.18 && red > blue * 1.12);
     if (target === 'tree') return green > 75 && green > red * 1.03 && green > blue * 1.15;
-    if (target === 'note') return red < 225 && green > 80 && blue > 80;
+    if (target === 'note') return green > 100 && blue > 60 && red < green * .98 && blue > green * .45;
     return red > 105 && red > green * 1.015 && red > blue * 1.005;
   };
   for (let index = 0; index < data.length; index += 4) {
@@ -80,7 +80,8 @@ function cropAccessory(source, x, y, width, height, outline, target) {
     const red = data[index], green = data[index + 1], blue = data[index + 2];
     const isHatYellow = red > 155 && green > 135 && blue < 135 && red + green > blue * 2 + 190;
     const pixel = index / 4, px = pixel % width, py = Math.floor(pixel / width), isDarkLine = Math.max(red, green, blue) < 125;
-    if (target === 'note' ? !primary[pixel] : isHatYellow || !insideOutline(px, py) || (!primary[pixel] && !(isDarkLine && touchesPrimary(px, py)))) data[index + 3] = 0;
+    const colorOnly = target === 'tree' || target === 'note' || target === 'petal';
+    if (colorOnly ? !primary[pixel] : isHatYellow || !insideOutline(px, py) || (!primary[pixel] && !(isDarkLine && touchesPrimary(px, py)))) data[index + 3] = 0;
   }
   context.putImageData(pixels, 0, 0);
   return crop.toDataURL('image/png');
@@ -92,8 +93,8 @@ function cropOriginal(source, x, y, width, height) {
 }
 function cropTitleFace(source) {
   const size = 523, crop = document.createElement('canvas'); crop.width = size; crop.height = size;
-  // 顔を自然な比率のまま中央へ配置し、余白はタイトルの丸背景に任せる。
-  crop.getContext('2d').drawImage(source, 0, 0, 480, 523, 21, 0, 480, 523);
+  // 新しい正方形イラストを縦横比を変えず、そのままタイトル用に配置する。
+  crop.getContext('2d').drawImage(source, 0, 0, source.naturalWidth, source.naturalHeight, 0, 0, size, size);
   return crop.toDataURL('image/png');
 }
 const makeCharacterCutout = () => {
@@ -101,10 +102,10 @@ const makeCharacterCutout = () => {
     const cutout = removeWhiteBackdrop(characterImage);
     // 元イラストの頭飾りから、きつね・緑の木・桜をそのまま切り出す。
     // きつねは顔と耳の輪郭を広めに確保し、表情が欠けないようにする。
-    collectibleSprites.fox = cropAccessory(cutout, 110, 35, 140, 125, [[0,0],[140,0],[140,125],[0,125]], 'fox');
-    collectibleSprites.tree = cropAccessory(cutout, 263, 125, 155, 150, [[0,0],[155,0],[155,150],[0,150]], 'tree');
-    collectibleSprites.petal = cropAccessory(cutout, 78, 148, 112, 75, [[3,5],[32,0],[49,16],[70,6],[94,18],[110,42],[99,67],[71,75],[49,62],[25,70],[4,53]], 'petal');
-    collectibleSprites.note = cropAccessory(cutout, 180, 100, 95, 85, [[0,0],[95,0],[95,85],[0,85]], 'note');
+    collectibleSprites.fox = cropAccessory(cutout, 82, 18, 96, 82, [[8,28],[40,5],[57,0],[69,17],[84,27],[80,42],[71,54],[74,70],[60,82],[31,80],[9,70],[1,49]], 'fox');
+    collectibleSprites.tree = cropAccessory(cutout, 178, 82, 82, 78, [[0,0],[82,0],[82,78],[0,78]], 'tree');
+    collectibleSprites.petal = cropAccessory(cutout, 70, 92, 72, 52, [[0,0],[72,0],[72,52],[0,52]], 'petal');
+    collectibleSprites.note = cropAccessory(cutout, 125, 55, 75, 80, [[0,0],[75,0],[75,80],[0,80]], 'note');
     titleFace.src = cropTitleFace(cutout);
     characterImage.dataset.cutout = 'true';
     characterImage.src = cutout.toDataURL('image/png');
@@ -131,7 +132,7 @@ function spawn() {
   const roll = Math.random();
   let points = 1, type = '', symbol = '★', sprite = '', hazard = false, kind = 'yellow-star';
   if (roll < .08) { points = 5; type = 'red-star'; kind = 'red-star'; }
-  else if (roll < .22) { points = 3; type = 'gold'; }
+  else if (roll < .22) { points = 3; type = 'gold'; kind = 'gold'; }
   else if (roll < .36) { points = 0; type = 'item fox'; sprite = collectibleSprites.fox; hazard = true; kind = 'fox'; }
   else if (roll < .50) { points = 2; type = 'item tree'; sprite = collectibleSprites.tree; kind = 'tree'; }
   else if (roll < .66) { points = 2; type = 'item petal'; sprite = collectibleSprites.petal; kind = 'petal'; }
@@ -144,12 +145,13 @@ function spawn() {
   star.style.left = `calc(${item.x * 100}% - 25px)`; game.append(star); stars.push(item);
 }
 function isFrozen() { const active = Date.now() < frozenUntil; if (!active && frozenUntil) unfreeze(); return active; }
-function unfreeze() { frozenUntil = 0; stoneAnimation?.cancel(); stoneAnimation = null; character.classList.remove('frozen'); character.style.removeProperty('filter'); damageEl.classList.remove('show'); }
-function takeDamage() { frozenUntil = Date.now() + 2000; score = Math.max(0, score - 3); scoreEl.textContent = score; character.classList.remove('frozen'); stoneAnimation?.cancel(); stoneAnimation = character.animate([{ filter: 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)' }, { filter: 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)', offset: .88 }, { filter: 'drop-shadow(0 8px 3px rgba(45,94,81,.23))' }], { duration: 2000, easing: 'linear' }); damageEl.classList.add('show'); clearTimeout(freezeTimer); clearTimeout(damageTimer); freezeTimer = setTimeout(unfreeze, 2000); damageTimer = setTimeout(() => damageEl.classList.remove('show'), 2000); foxSound(); }
+function unfreeze() { frozenUntil = 0; stoneAnimation?.cancel(); stoneAnimation = null; character.classList.remove('frozen'); character.style.filter = ''; damageEl.classList.remove('show'); }
+function takeDamage() { frozenUntil = Date.now() + 2000; score = Math.max(0, score - 3); scoreEl.textContent = score; character.classList.remove('frozen'); stoneAnimation?.cancel(); stoneAnimation = null; character.style.filter = 'grayscale(1) sepia(.18) contrast(1.2) brightness(.72) drop-shadow(0 0 8px #aeb3b9)'; damageEl.classList.add('show'); clearTimeout(freezeTimer); clearTimeout(damageTimer); freezeTimer = window.setTimeout(unfreeze, 2000); damageTimer = window.setTimeout(() => damageEl.classList.remove('show'), 2000); foxSound(); }
 function surprise() { character.classList.add('surprised'); clearTimeout(surpriseTimer); surpriseTimer = setTimeout(() => character.classList.remove('surprised'), 450); }
 function bashful() { character.classList.add('bashful'); clearTimeout(bashfulTimer); bashfulTimer = setTimeout(() => character.classList.remove('bashful'), 750); }
+function starGlow(color) { character.style.setProperty('--star-glow', color); character.classList.add('star-glow'); clearTimeout(glowTimer); glowTimer = setTimeout(() => character.classList.remove('star-glow'), 360); }
 function sing() { character.classList.add('singing'); clearTimeout(singingTimer); singingTimer = setTimeout(() => character.classList.remove('singing'), 800); }
-function frame() { if (!playing) return; const g = bounds(); if (!isFrozen() && (keys.ArrowLeft || keys.a)) aimPlayer(targetPlayerX - .018); if (!isFrozen() && (keys.ArrowRight || keys.d)) aimPlayer(targetPlayerX + .018); if (!isFrozen()) setPlayer(playerX + (targetPlayerX - playerX) * .32); const p = character.getBoundingClientRect(); for (const item of [...stars]) { item.y += item.speed; item.el.style.transform = `translateY(${item.y}px) rotate(${item.y / 7}deg)`; const s = item.el.getBoundingClientRect(); const hit = s.bottom > p.top + 17 && s.top < p.bottom - 25 && s.right > p.left + 20 && s.left < p.right - 20; if (hit) { if (item.hazard) takeDamage(); else { score += item.points; scoreEl.textContent = score; if (item.kind === 'tree') { rustleSound(); surprise(); } else if (item.kind === 'petal') { shamisenSound(); bashful(); } else if (item.kind === 'note') { pianoSound(); sing(); } else if (item.kind === 'red-star') redStarSound(); else yellowStarSound(); } item.el.animate([{transform: item.el.style.transform, opacity: 1}, {transform: `${item.el.style.transform} scale(1.8)`, opacity: 0}], {duration: 180}); removeStar(item); } else if (item.y > g.height + 50) removeStar(item); } animation = requestAnimationFrame(frame); }
+function frame() { if (!playing) return; const g = bounds(); if (!isFrozen() && (keys.ArrowLeft || keys.a)) aimPlayer(targetPlayerX - .018); if (!isFrozen() && (keys.ArrowRight || keys.d)) aimPlayer(targetPlayerX + (targetPlayerX - playerX) * 0 + .018); if (!isFrozen()) setPlayer(playerX + (targetPlayerX - playerX) * .32); const p = character.getBoundingClientRect(); for (const item of [...stars]) { item.y += item.speed; item.el.style.transform = `translateY(${item.y}px) rotate(${item.y / 7}deg)`; const s = item.el.getBoundingClientRect(); const hit = s.bottom > p.top + 17 && s.top < p.bottom - 25 && s.right > p.left + 20 && s.left < p.right - 20; if (hit) { if (item.hazard) takeDamage(); else { score += item.points; scoreEl.textContent = score; if (item.kind === 'tree') { rustleSound(); surprise(); } else if (item.kind === 'petal') { shamisenSound(); bashful(); } else if (item.kind === 'note') { pianoSound(); sing(); } else if (item.kind === 'red-star') { redStarSound(); starGlow('#ff637b'); } else { yellowStarSound(); starGlow(item.kind === 'gold' ? '#ffd42a' : '#ffe547'); } } item.el.animate([{transform: item.el.style.transform, opacity: 1}, {transform: `${item.el.style.transform} scale(1.8)`, opacity: 0}], {duration: 180}); removeStar(item); } else if (item.y > g.height + 50) removeStar(item); } animation = requestAnimationFrame(frame); }
 function removeStar(item) { item.el.remove(); stars = stars.filter(s => s !== item); }
 function start() { stars.forEach(s => s.el.remove()); stars = []; score = 0; seconds = 30; playerX = .5; targetPlayerX = .5; fireworksShown = false; fireworks.replaceChildren(); frozenUntil = 0; clearTimeout(freezeTimer); clearTimeout(damageTimer); character.classList.remove('frozen', 'facing-left'); damageEl.classList.remove('show'); scoreEl.textContent = '0'; timeEl.textContent = seconds; setPlayer(playerX); playing = true; message.classList.add('hidden'); startButton.textContent = 'プレイ中！'; startButton.classList.add('playing'); game.focus(); spawn(); spawnTimer = setInterval(spawn, 700); ticker = setInterval(() => { seconds = Math.max(0, seconds - 1); timeEl.textContent = seconds; if (seconds === 0) end(); }, 1000); animation = requestAnimationFrame(frame); }
 function end() { playing = false; seconds = 0; timeEl.textContent = seconds; frozenUntil = 0; clearTimeout(freezeTimer); clearTimeout(damageTimer); character.classList.remove('frozen'); damageEl.classList.remove('show'); clearInterval(spawnTimer); clearInterval(ticker); spawnTimer = ticker = null; cancelAnimationFrame(animation); stars.forEach(s => s.el.remove()); stars = []; const greatScore = score >= 70, closeScore = score >= 60; if (greatScore) launchFireworks(true); startButton.textContent = 'もういちど！'; startButton.classList.remove('playing'); message.innerHTML = `${greatScore ? 'がんばったね！' : closeScore ? 'おしい！' : 'またやってみてね！'}<br><strong>${score} 点</strong><small>タップして もういちど あそぼう！</small>`; message.classList.remove('hidden'); }

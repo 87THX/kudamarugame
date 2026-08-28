@@ -33,6 +33,8 @@ header { text-shadow: 0 3px #fff; } h1 { margin: 0; color: #ffd22d; font-size: c
 .sound.badge strong { display: flex; align-items: flex-end; justify-content: center; min-height: 34px; }
 .sound.badge strong { font-size: 34px; }
 .sound.badge.muted strong { position: relative; }.sound.badge.muted strong::after { content: ""; position: absolute; top: 50%; left: 50%; width: 38px; height: 3px; border-radius: 99px; background: #f08a3c; transform: translate(-50%, -50%) rotate(-48deg); box-shadow: 0 1px 0 rgba(255,255,255,.8); }
+.character.singing::before { color: #28cdec; -webkit-text-stroke-color: #267ca0; }.character.surprised::before { color: #29c76d; -webkit-text-stroke-color: #176e43; }
+.character.star-glow { filter: drop-shadow(0 0 6px var(--star-glow)) drop-shadow(0 0 14px var(--star-glow)) drop-shadow(0 8px 3px rgba(45,94,81,.23)); }
 .tip .reading { position: relative; display: inline-block; }.tip .reading > span { color: inherit; }.tip .reading i { position: absolute; top: -.75em; left: 50%; color: inherit; font-size: .52em; font-style: normal; line-height: 1; transform: translateX(-50%); white-space: nowrap; }
 .character.singing::before { content: "♪ ♫"; position: absolute; z-index: 4; top: -24px; left: 12px; color: #72ddf4; font-size: 27px; font-weight: bold; -webkit-text-stroke: 1px #4e6ba1; text-shadow: 0 1px 0 #fff; animation: singing-notes .8s ease-out forwards; }@keyframes singing-notes { from { transform: translateY(11px) scale(.7) rotate(-8deg); opacity: 0; } 28% { opacity: 1; } to { transform: translateY(-30px) scale(1.15) rotate(7deg); opacity: 0; } }
 #startButton { display: inline-flex; align-items: center; justify-content: center; }#startButton::after { content: " ★"; color: #eaa34c; }
