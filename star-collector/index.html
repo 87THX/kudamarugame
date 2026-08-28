@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>くだまる☆キャッチ</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header>
+        <div class="title-wrap">
+          <span class="sparkle">✦</span>
+          <h1><span class="title-word">くだまる</span><span class="title-face"><img id="titleFace" src="assets/character.png" alt="くだまるの顔" /></span>キャッチ</h1>
+          <span class="sparkle">✦</span>
+        </div>
+        <p>おちてくる おほしさまを キャッチしよう！</p>
+      </header>
+
+      <section class="hud" aria-label="ゲーム情報">
+        <div class="badge"><small>SCORE</small><strong id="score">0</strong></div>
+        <div class="badge time"><small>TIME</small><strong id="time">30</strong><b>秒</b></div>
+        <button id="soundButton" class="sound" aria-label="効果音のオンオフ">♪</button>
+      </section>
+
+      <section id="game" class="game" aria-label="星集めゲーム" tabindex="0">
+        <div class="moon">☾</div>
+        <div class="sky-specks" aria-hidden="true"><span>KUDAMARU</span></div>
+        <div class="mountains"></div>
+        <div class="sea" aria-hidden="true"></div>
+        <div class="town" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="bridge" aria-hidden="true"><svg viewBox="0 0 1000 220" preserveAspectRatio="none"><path class="bridge-deck" d="M0 151H1000V166H0Z"/><path class="bridge-arch" d="M150 151C300 18 700 18 850 151"/><path class="bridge-lines" d="M205 151V113M280 151V71M365 151V40M455 151V25M545 151V25M635 151V40M720 151V71M795 151V113"/><path class="bridge-pier" d="M268 166H294V220H268ZM706 166H732V220H706Z"/></svg></div>
+        <div id="character" class="character"><img src="assets/character.png" alt="星を集めるキャラクター" /></div>
+        <div id="fireworks" class="fireworks" aria-hidden="true"></div>
+        <div id="damage" class="damage" aria-live="polite">あっ！ きつねに ぶつかった！<small>2秒間うごけないよ</small></div>
+        <div id="message" class="message">タップしてスタート！<small>← → キー / ドラッグでうごかせるよ</small></div>
+      </section>
+
+      <div class="controls" aria-label="操作ボタン">
+        <button id="leftButton" aria-label="左へ移動">◀</button>
+        <button id="startButton">ゲームスタート</button>
+        <button id="rightButton" aria-label="右へ移動">▶</button>
+      </div>
+      <p class="tip">いろんなアイテムを集めよう！ でも、きつねだけは気をつけて！</p>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
