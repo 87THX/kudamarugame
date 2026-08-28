@@ -142,7 +142,7 @@ function spawn() {
   if (sprite) { const image = document.createElement('img'); image.src = sprite; image.alt = ''; star.append(image); }
   else star.textContent = symbol;
   const item = { el: star, x: .06 + Math.random() * .84, y: -60, speed: .9 + Math.random() * .7 + (30 - seconds) * .11, points, hazard, kind };
-  star.style.left = `calc(${item.x * 100}% - 25px)`; game.append(star); stars.push(item);
+  star.style.left = `calc(${item.x * 100}% - ${sprite ? 34 : 25}px)`; game.append(star); stars.push(item);
 }
 function isFrozen() { const active = Date.now() < frozenUntil; if (!active && frozenUntil) unfreeze(); return active; }
 function unfreeze() { frozenUntil = 0; stoneAnimation?.cancel(); stoneAnimation = null; character.classList.remove('frozen'); character.style.filter = ''; damageEl.classList.remove('show'); }
