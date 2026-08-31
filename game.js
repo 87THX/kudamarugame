@@ -11,6 +11,7 @@ const leftButton = document.querySelector('#leftButton');
 const rightButton = document.querySelector('#rightButton');
 
 let playing = false, score = 0, seconds = 30, playerX = 0.5, keys = {}, stars = [], spawnTimer, ticker, animation, muted = false, audioCtx, frozenUntil = 0, freezeTimer, damageTimer, surpriseTimer, bashfulTimer, singingTimer, glowTimer, stoneAnimation, fireworksShown = false;
+let characterHitBounds = { left: 0, top: 0, right: 1, bottom: 1 };
 const collectibleSprites = {};
 
 // 外側につながる白だけを透明にするので、キャラクター内部の白は残る。
@@ -38,6 +39,14 @@ function removeWhiteBackdrop(image) {
   }
   context.putImageData(pixels, 0, 0);
   return canvas;
+}
+function getOpaqueBounds(canvas) {
+  const { data } = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
+  let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
+  for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+    if (data[(y * canvas.width + x) * 4 + 3] > 12) { left = Math.min(left, x); top = Math.min(top, y); right = Math.max(right, x); bottom = Math.max(bottom, y); }
+  }
+  return right < 0 ? { left: 0, top: 0, right: 1, bottom: 1 } : { left: left / canvas.width, top: top / canvas.height, right: (right + 1) / canvas.width, bottom: (bottom + 1) / canvas.height };
 }
 const characterImage = character.querySelector('img');
 const titleFace = document.querySelector('#titleFace');
@@ -100,6 +109,7 @@ function cropTitleFace(source) {
 const makeCharacterCutout = () => {
   if (!characterImage.dataset.cutout && characterImage.naturalWidth) {
     const cutout = removeWhiteBackdrop(characterImage);
+    characterHitBounds = getOpaqueBounds(cutout);
     // 元イラストの頭飾りから、きつね・緑の木・桜をそのまま切り出す。
     // きつねは顔と耳の輪郭を広めに確保し、表情が欠けないようにする。
     collectibleSprites.fox = cropAccessory(cutout, 82, 18, 96, 82, [[8,28],[40,5],[57,0],[69,17],[84,27],[80,42],[71,54],[74,70],[60,82],[31,80],[9,70],[1,49]], 'fox');
@@ -151,7 +161,7 @@ function surprise() { character.classList.add('surprised'); clearTimeout(surpris
 function bashful() { character.classList.add('bashful'); clearTimeout(bashfulTimer); bashfulTimer = setTimeout(() => character.classList.remove('bashful'), 750); }
 function starGlow(color) { character.style.setProperty('--star-glow', color); character.classList.add('star-glow'); clearTimeout(glowTimer); glowTimer = setTimeout(() => character.classList.remove('star-glow'), 360); }
 function sing() { character.classList.add('singing'); clearTimeout(singingTimer); singingTimer = setTimeout(() => character.classList.remove('singing'), 800); }
-function frame() { if (!playing) return; const g = bounds(); if (!isFrozen() && (keys.ArrowLeft || keys.a)) aimPlayer(targetPlayerX - .018); if (!isFrozen() && (keys.ArrowRight || keys.d)) aimPlayer(targetPlayerX + .018); if (!isFrozen()) setPlayer(playerX + (targetPlayerX - playerX) * .32); const p = character.getBoundingClientRect(); for (const item of [...stars]) { item.y += item.speed; item.el.style.transform = `translateY(${item.y}px) rotate(${item.y / 7}deg)`; const s = item.el.getBoundingClientRect(); const hit = s.bottom >= p.top && s.top <= p.bottom && s.right >= p.left && s.left <= p.right; if (hit) { if (item.hazard) takeDamage(); else { score += item.points; scoreEl.textContent = score; if (item.kind === 'tree') { rustleSound(); surprise(); } else if (item.kind === 'petal') { shamisenSound(); bashful(); } else if (item.kind === 'note') { pianoSound(); sing(); } else if (item.kind === 'red-star') { redStarSound(); starGlow('#ff637b'); } else { yellowStarSound(); starGlow(item.kind === 'gold' ? '#ffd42a' : '#ffe547'); } } item.el.animate([{transform: item.el.style.transform, opacity: 1}, {transform: `${item.el.style.transform} scale(1.8)`, opacity: 0}], {duration: 180}); removeStar(item); } else if (item.y > g.height + 50) removeStar(item); } animation = requestAnimationFrame(frame); }
+function frame() { if (!playing) return; const g = bounds(); if (!isFrozen() && (keys.ArrowLeft || keys.a)) aimPlayer(targetPlayerX - .018); if (!isFrozen() && (keys.ArrowRight || keys.d)) aimPlayer(targetPlayerX + .018); if (!isFrozen()) setPlayer(playerX + (targetPlayerX - playerX) * .32); const characterRect = character.getBoundingClientRect(), p = { left: characterRect.left + characterRect.width * characterHitBounds.left, right: characterRect.left + characterRect.width * characterHitBounds.right, top: characterRect.top + characterRect.height * characterHitBounds.top, bottom: characterRect.top + characterRect.height * characterHitBounds.bottom }; for (const item of [...stars]) { item.y += item.speed; item.el.style.transform = `translateY(${item.y}px) rotate(${item.y / 7}deg)`; const s = item.el.getBoundingClientRect(); const hit = s.bottom >= p.top && s.top <= p.bottom && s.right >= p.left && s.left <= p.right; if (hit) { if (item.hazard) takeDamage(); else { score += item.points; scoreEl.textContent = score; if (item.kind === 'tree') { rustleSound(); surprise(); } else if (item.kind === 'petal') { shamisenSound(); bashful(); } else if (item.kind === 'note') { pianoSound(); sing(); } else if (item.kind === 'red-star') { redStarSound(); starGlow('#ff637b'); } else { yellowStarSound(); starGlow(item.kind === 'gold' ? '#ffd42a' : '#ffe547'); } } item.el.animate([{transform: item.el.style.transform, opacity: 1}, {transform: `${item.el.style.transform} scale(1.8)`, opacity: 0}], {duration: 180}); removeStar(item); } else if (item.y > g.height + 50) removeStar(item); } animation = requestAnimationFrame(frame); }
 function removeStar(item) { item.el.remove(); stars = stars.filter(s => s !== item); }
 function start() { stars.forEach(s => s.el.remove()); stars = []; score = 0; seconds = 30; playerX = .5; targetPlayerX = .5; fireworksShown = false; fireworks.replaceChildren(); frozenUntil = 0; clearTimeout(freezeTimer); clearTimeout(damageTimer); character.classList.remove('frozen', 'facing-left'); damageEl.classList.remove('show'); scoreEl.textContent = '0'; timeEl.textContent = seconds; setPlayer(playerX); playing = true; message.classList.add('hidden'); startButton.textContent = 'プレイ中！'; startButton.classList.add('playing'); game.focus(); spawn(); spawnTimer = setInterval(spawn, 700); ticker = setInterval(() => { seconds = Math.max(0, seconds - 1); timeEl.textContent = seconds; if (seconds === 0) end(); }, 1000); animation = requestAnimationFrame(frame); }
 function end() { playing = false; seconds = 0; timeEl.textContent = seconds; frozenUntil = 0; clearTimeout(freezeTimer); clearTimeout(damageTimer); character.classList.remove('frozen'); damageEl.classList.remove('show'); clearInterval(spawnTimer); clearInterval(ticker); spawnTimer = ticker = null; cancelAnimationFrame(animation); stars.forEach(s => s.el.remove()); stars = []; const greatScore = score >= 70, closeScore = score >= 60; if (greatScore) launchFireworks(true); startButton.textContent = 'もういちど！'; startButton.classList.remove('playing'); message.innerHTML = `${greatScore ? 'がんばったね！' : closeScore ? 'おしい！' : 'またやってみてね！'}<br><strong>${score} 点</strong><small>タップして もういちど あそぼう！</small>`; message.classList.remove('hidden'); }
